@@ -98,6 +98,25 @@ const translations = {
     "rating.title": "Rate this collection",
     "rating.submit": "Submit Rating",
     "rating.thanks": "Thanks for your feedback!",
+    "rating.lowTitle": "We're sorry to hear that",
+    "rating.lowMsg": "Tell us what we can do better — your feedback helps us improve.",
+    "rating.lowPlaceholder": "What could we improve?",
+    "rating.lowSend": "Send Feedback",
+    "rating.lowSkip": "Skip",
+    "rating.feedbackThanks": "Thanks for helping us improve!",
+
+    // Archive
+    "jobs.archive": "Archive",
+    "jobs.archived": "Archived",
+    "jobs.showArchived": "Archived",
+    "jobs.noArchived": "No archived jobs",
+    "jobs.archiveConfirm": "Archive this job?",
+    "jobs.archiveConfirmMsg": "It will be moved to the archived tab.",
+    "jobs.unarchive": "Unarchive",
+
+    // Withdraw
+    "stats.withdraw": "Withdraw Funds",
+    "stats.withdrawMsg": "Withdrawal feature coming soon! We'll notify you when it's available.",
 
     // Map
     "map.title": "Jobs Map",
@@ -220,6 +239,25 @@ const translations = {
     "rating.title": "Oceń ten odbiór",
     "rating.submit": "Wyślij ocenę",
     "rating.thanks": "Dziękujemy za opinię!",
+    "rating.lowTitle": "Przykro nam to słyszeć",
+    "rating.lowMsg": "Powiedz nam co możemy poprawić — Twoja opinia pomaga nam się rozwijać.",
+    "rating.lowPlaceholder": "Co moglibyśmy poprawić?",
+    "rating.lowSend": "Wyślij opinię",
+    "rating.lowSkip": "Pomiń",
+    "rating.feedbackThanks": "Dziękujemy za pomoc w ulepszaniu!",
+
+    // Archive
+    "jobs.archive": "Archiwizuj",
+    "jobs.archived": "Zarchiwizowane",
+    "jobs.showArchived": "Archiwum",
+    "jobs.noArchived": "Brak zarchiwizowanych zleceń",
+    "jobs.archiveConfirm": "Zarchiwizować zlecenie?",
+    "jobs.archiveConfirmMsg": "Zostanie przeniesione do zakładki archiwum.",
+    "jobs.unarchive": "Przywróć",
+
+    // Withdraw
+    "stats.withdraw": "Wypłać środki",
+    "stats.withdrawMsg": "Funkcja wypłat już wkrótce! Powiadomimy Cię gdy będzie dostępna.",
 
     // Map
     "map.title": "Mapa zleceń",

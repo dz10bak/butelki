@@ -14,5 +14,7 @@ export interface Job {
   status: JobStatus;
   assignedTo: string | null;
   createdAt: number;
-  rating?: number;
+  clientRating?: number;
+  driverRating?: number;
+  archived?: boolean;
 }

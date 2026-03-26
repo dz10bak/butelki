@@ -50,8 +50,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [role, setRoleState] = useState<UserRole | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [pendingRating, setPendingRating] = useState(0);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState("");
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,8 +66,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       return;
     }
     setJob(found);
-    setRating(found.rating ?? 0);
-    setRatingSubmitted(!!found.rating);
     setLoading(false);
 
     navigator.geolocation?.getCurrentPosition((pos) => {
@@ -97,11 +97,41 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     toast(t("jobs.cancelled"));
   };
 
+  const myRating = job ? (role === "driver" ? job.driverRating : job.clientRating) : undefined;
+  const otherRating = job ? (role === "driver" ? job.clientRating : job.driverRating) : undefined;
+  const ratingSubmitted = !!myRating;
+
   const handleRating = () => {
-    if (!job || rating === 0) return;
-    updateJob(job.id, { rating });
-    setRatingSubmitted(true);
-    toast(t("rating.thanks"));
+    if (!job || pendingRating === 0) return;
+    const ratingKey = role === "driver" ? "driverRating" : "clientRating";
+    updateJob(job.id, { [ratingKey]: pendingRating });
+    setJob({ ...job, [ratingKey]: pendingRating });
+    if (pendingRating <= 2) {
+      setShowFeedback(true);
+    } else {
+      toast(t("rating.thanks"));
+    }
+  };
+
+  const handleFeedbackSubmit = () => {
+    setShowFeedback(false);
+    toast(t("rating.feedbackThanks"));
+  };
+
+  const handleArchive = () => {
+    if (!job) return;
+    updateJob(job.id, { archived: true });
+    setJob({ ...job, archived: true });
+    setShowArchiveConfirm(false);
+    toast(t("jobs.archived") + " ✓");
+    router.push("/jobs");
+  };
+
+  const handleUnarchive = () => {
+    if (!job) return;
+    updateJob(job.id, { archived: false });
+    setJob({ ...job, archived: false });
+    toast(t("jobs.unarchive") + " ✓");
   };
 
   if (loading || !job) {
@@ -221,13 +251,42 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <p className="text-green-600 font-semibold text-lg">{t("job.done")}</p>
               <p className="text-gray-400 text-sm mt-1">{t("job.doneSubtitle")}</p>
 
-              {!ratingSubmitted ? (
+              {showFeedback ? (
+                <div className="mt-6 text-left bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-center mb-3">
+                    <StarRating value={pendingRating} readonly size="md" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{t("rating.lowTitle")}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t("rating.lowMsg")}</p>
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder={t("rating.lowPlaceholder")}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none mb-3"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowFeedback(false); toast(t("rating.thanks")); }}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 active:bg-gray-200 transition-colors"
+                    >
+                      {t("rating.lowSkip")}
+                    </button>
+                    <button
+                      onClick={handleFeedbackSubmit}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-green-600 text-white active:bg-green-700 transition-colors"
+                    >
+                      {t("rating.lowSend")}
+                    </button>
+                  </div>
+                </div>
+              ) : !ratingSubmitted ? (
                 <div className="mt-6">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t("rating.title")}</p>
                   <div className="flex justify-center mb-3">
-                    <StarRating value={rating} onChange={setRating} size="lg" />
+                    <StarRating value={pendingRating} onChange={setPendingRating} size="lg" />
                   </div>
-                  {rating > 0 && (
+                  {pendingRating > 0 && (
                     <button
                       onClick={handleRating}
                       className="bg-green-600 text-white font-semibold px-6 py-2.5 rounded-xl active:bg-green-700 transition-colors text-sm"
@@ -237,8 +296,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   )}
                 </div>
               ) : (
-                <div className="mt-4 flex justify-center">
-                  <StarRating value={rating} readonly size="md" />
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <StarRating value={myRating ?? 0} readonly size="md" />
+                  {otherRating && (
+                    <p className="text-xs text-gray-400">
+                      {role === "driver" ? "Client" : "Driver"}: <StarRating value={otherRating} readonly size="sm" />
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -249,6 +313,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div className="text-4xl mb-2">❌</div>
               <p className="text-red-500 font-semibold text-lg">{t("job.cancelledMsg")}</p>
             </div>
+          )}
+
+          {/* Archive / Unarchive button for done or cancelled jobs */}
+          {(job.status === "done" || job.status === "cancelled") && (
+            job.archived ? (
+              <button
+                onClick={handleUnarchive}
+                className="w-full py-3 rounded-2xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 active:bg-gray-200 dark:active:bg-gray-700 transition-colors"
+              >
+                {t("jobs.unarchive")}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowArchiveConfirm(true)}
+                className="w-full py-3 rounded-2xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 active:bg-gray-200 dark:active:bg-gray-700 transition-colors"
+              >
+                {t("jobs.archive")}
+              </button>
+            )
           )}
         </div>
       </div>
@@ -271,6 +354,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         variant="danger"
         onConfirm={handleCancel}
         onCancel={() => setShowCancelConfirm(false)}
+      />
+
+      <ConfirmModal
+        open={showArchiveConfirm}
+        title={t("jobs.archiveConfirm")}
+        message={t("jobs.archiveConfirmMsg")}
+        confirmLabel={t("jobs.archive")}
+        cancelLabel={t("confirm.cancel")}
+        onConfirm={handleArchive}
+        onCancel={() => setShowArchiveConfirm(false)}
       />
 
       <BottomNav />

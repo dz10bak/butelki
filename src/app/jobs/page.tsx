@@ -45,6 +45,7 @@ export default function JobsPage() {
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const [sort, setSort] = useState<SortOption>("newest");
   const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const { t } = useLocale();
   const { toast } = useToast();
@@ -61,6 +62,9 @@ export default function JobsPage() {
     let list = isDriver
       ? jobs.filter((j) => j.status === "pending" || j.assignedTo === "driver-1")
       : jobs;
+
+    // Archive filter
+    list = list.filter((j) => showArchived ? !!j.archived : !j.archived);
 
     if (typeFilter !== "all") {
       list = list.filter((j) => {
@@ -101,9 +105,21 @@ export default function JobsPage() {
   return (
     <div className="min-h-dvh pb-20">
       <div className="px-4 pt-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          {isDriver ? t("jobs.available") : t("jobs.myRequests")}
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {showArchived ? t("jobs.showArchived") : isDriver ? t("jobs.available") : t("jobs.myRequests")}
+          </h1>
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
+              showArchived
+                ? "bg-green-600 text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            {showArchived ? (isDriver ? t("jobs.available") : t("jobs.myRequests")) : t("jobs.showArchived")}
+          </button>
+        </div>
 
         {/* Search */}
         <input
@@ -169,11 +185,13 @@ export default function JobsPage() {
             <div className="text-4xl mb-3">📭</div>
             <p className="text-gray-400 text-lg">{t("jobs.noJobs")}</p>
             <p className="text-gray-400 text-sm mt-1">
-              {typeFilter !== "all" || statusFilter !== "all" || search
-                ? t("jobs.changeFilters")
-                : !isDriver
-                  ? t("jobs.createFirst")
-                  : t("jobs.checkBack")}
+              {showArchived
+                ? t("jobs.noArchived")
+                : typeFilter !== "all" || statusFilter !== "all" || search
+                  ? t("jobs.changeFilters")
+                  : !isDriver
+                    ? t("jobs.createFirst")
+                    : t("jobs.checkBack")}
             </p>
           </div>
         ) : (

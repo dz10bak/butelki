@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { getJobs, getRole } from "@/lib/storage";
 import type { Job, UserRole } from "@/lib/types";
 import { useLocale } from "@/components/LocaleProvider";
+import { useToast } from "@/components/ToastProvider";
 import StarRating from "@/components/StarRating";
 import BottomNav from "@/components/BottomNav";
 
@@ -26,6 +27,7 @@ export default function StatsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [role, setRoleState] = useState<UserRole | null>(null);
   const { t } = useLocale();
+  const { toast } = useToast();
 
   useEffect(() => {
     const r = getRole();
@@ -58,6 +60,16 @@ export default function StatsPage() {
           </div>
         </div>
 
+        {/* Withdraw button */}
+        {totalEarnings > 0 && (
+          <button
+            onClick={() => toast(t("stats.withdrawMsg"), "info")}
+            className="w-full bg-green-600 text-white text-lg font-semibold py-4 rounded-2xl active:bg-green-700 active:scale-[0.98] transition-all mb-6"
+          >
+            {t("stats.withdraw")} — {totalEarnings.toFixed(2)} zl
+          </button>
+        )}
+
         {/* History */}
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t("stats.history")}</h2>
         {jobs.length === 0 ? (
@@ -82,9 +94,9 @@ export default function StatsPage() {
                     </div>
                     <span className="text-sm font-semibold text-green-600">+{earned.toFixed(2)} zl</span>
                   </div>
-                  {job.rating && (
+                  {(role === "driver" ? job.driverRating : job.clientRating) && (
                     <div className="flex items-center gap-1 mt-1">
-                      <StarRating value={job.rating} readonly size="sm" />
+                      <StarRating value={(role === "driver" ? job.driverRating : job.clientRating) ?? 0} readonly size="sm" />
                     </div>
                   )}
                 </div>
