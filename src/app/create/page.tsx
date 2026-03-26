@@ -4,23 +4,27 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { addJob } from "@/lib/storage";
 import type { JobType } from "@/lib/types";
+import { useLocale } from "@/components/LocaleProvider";
+import { useToast } from "@/components/ToastProvider";
 import FormInput from "@/components/FormInput";
 import MapPicker from "@/components/MapPicker";
 import BottomNav from "@/components/BottomNav";
 
-const jobTypes: { value: JobType; label: string }[] = [
-  { value: "cans", label: "Cans" },
-  { value: "plastic", label: "Plastic" },
-  { value: "glass", label: "Glass" },
+const jobTypes: { value: JobType; labelKey: "create.cans" | "create.plastic" | "create.glass"; emoji: string }[] = [
+  { value: "cans", labelKey: "create.cans", emoji: "🥫" },
+  { value: "plastic", labelKey: "create.plastic", emoji: "🧴" },
+  { value: "glass", labelKey: "create.glass", emoji: "🍾" },
 ];
 
 export default function CreatePage() {
   const router = useRouter();
+  const { t } = useLocale();
+  const { toast } = useToast();
   const [address, setAddress] = useState("");
   const [lat, setLat] = useState(52.2297);
   const [lng, setLng] = useState(21.0122);
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState<JobType>("cans");
+  const [types, setTypes] = useState<JobType[]>(["cans"]);
   const [depositOnly, setDepositOnly] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,14 +44,24 @@ export default function CreatePage() {
     setAddress(newAddress);
   }, []);
 
+  const toggleType = (type: JobType) => {
+    setTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
   const handleSubmit = () => {
     const num = parseInt(amount);
     if (!address) {
-      setError("Please select a location on the map");
+      setError(t("create.errorLocation"));
       return;
     }
     if (!num || num < 50) {
-      setError("Minimum 50 items required");
+      setError(t("create.errorAmount"));
+      return;
+    }
+    if (types.length === 0) {
+      setError(t("create.errorType"));
       return;
     }
     setError("");
@@ -58,24 +72,25 @@ export default function CreatePage() {
       lat,
       lng,
       amount: num,
-      type,
+      type: types.length === 1 ? types[0] : types,
       depositOnly,
       status: "pending",
       assignedTo: null,
       createdAt: Date.now(),
     });
 
+    toast(t("create.success"));
     router.push("/jobs");
   };
 
   return (
     <div className="min-h-dvh pb-20">
-      <div className="max-w-md mx-auto px-4 pt-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Create Request</h1>
+      <div className="px-4 pt-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t("create.title")}</h1>
 
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("create.location")}</label>
             <MapPicker lat={lat} lng={lng} onLocationChange={handleLocationChange} />
             {address && (
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 truncate">{address}</p>
@@ -83,36 +98,37 @@ export default function CreatePage() {
           </div>
 
           <FormInput
-            label="Address"
+            label={t("create.address")}
             value={address}
             onChange={setAddress}
-            placeholder="Enter address or tap the map"
+            placeholder={t("create.addressPlaceholder")}
           />
 
           <FormInput
-            label="Amount (min. 50)"
+            label={t("create.amount")}
             type="number"
             value={amount}
             onChange={setAmount}
-            placeholder="Number of items"
+            placeholder={t("create.amountPlaceholder")}
             min={50}
             error={error && (!amount || parseInt(amount) < 50) ? error : undefined}
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("create.type")}</label>
+            <p className="text-xs text-gray-400 mb-2">{t("create.typeHint")}</p>
             <div className="flex gap-2">
-              {jobTypes.map((t) => (
+              {jobTypes.map((jt) => (
                 <button
-                  key={t.value}
-                  onClick={() => setType(t.value)}
+                  key={jt.value}
+                  onClick={() => toggleType(jt.value)}
                   className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    type === t.value
+                    types.includes(jt.value)
                       ? "bg-green-600 text-white"
                       : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                   }`}
                 >
-                  {t.label}
+                  {jt.emoji} {t(jt.labelKey)}
                 </button>
               ))}
             </div>
@@ -125,16 +141,16 @@ export default function CreatePage() {
               onChange={(e) => setDepositOnly(e.target.checked)}
               className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Only items with deposit</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">{t("create.depositOnly")}</span>
           </label>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             onClick={handleSubmit}
-            className="w-full bg-green-600 text-white text-lg font-semibold py-4 rounded-2xl active:bg-green-700 transition-colors"
+            className="w-full bg-green-600 text-white text-lg font-semibold py-4 rounded-2xl active:bg-green-700 active:scale-[0.98] transition-all"
           >
-            Submit Request
+            {t("create.submit")}
           </button>
         </div>
       </div>

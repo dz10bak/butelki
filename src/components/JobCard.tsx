@@ -43,7 +43,8 @@ export default function JobCard({
   showAccept?: boolean;
   onAccept?: (id: string) => void;
 }) {
-  const pricePerItem = job.type === "glass" ? 1.0 : 0.5;
+  const jobTypes = Array.isArray(job.type) ? job.type : [job.type];
+  const pricePerItem = jobTypes.includes("glass") ? 1.0 : 0.5;
   const earnings = (job.amount * pricePerItem).toFixed(2);
 
   return (
@@ -51,9 +52,11 @@ export default function JobCard({
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 active:scale-[0.98] transition-all duration-200 hover:shadow-md">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-3">
-            <span className="text-2xl w-10 h-10 bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center">{typeEmoji[job.type]}</span>
+            <span className="text-2xl w-10 h-10 bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center">
+              {jobTypes.map((jt) => typeEmoji[jt]).join("")}
+            </span>
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white capitalize">{job.type}</p>
+              <p className="font-semibold text-gray-900 dark:text-white capitalize">{jobTypes.join(" + ")}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">{job.amount} items</p>
             </div>
           </div>

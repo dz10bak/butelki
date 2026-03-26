@@ -1,7 +1,8 @@
-import { Job, UserRole } from "./types";
+import { Job, UserRole, Locale } from "./types";
 
 const JOBS_KEY = "bottlecollect_jobs";
 const ROLE_KEY = "bottlecollect_role";
+const LOCALE_KEY = "bottlecollect_locale";
 
 export function getJobs(): Job[] {
   if (typeof window === "undefined") return [];
@@ -40,4 +41,13 @@ export function getRole(): UserRole | null {
 
 export function setRole(role: UserRole): void {
   localStorage.setItem(ROLE_KEY, role);
+}
+
+export function getLocale(): Locale {
+  if (typeof window === "undefined") return "en";
+  return (localStorage.getItem(LOCALE_KEY) as Locale) || "en";
+}
+
+export function setLocale(locale: Locale): void {
+  localStorage.setItem(LOCALE_KEY, locale);
 }

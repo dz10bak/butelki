@@ -3,45 +3,56 @@
 import { useState, useEffect, useMemo } from "react";
 import { getJobs, updateJob, getRole } from "@/lib/storage";
 import type { Job, JobType, JobStatus, UserRole } from "@/lib/types";
+import { useLocale } from "@/components/LocaleProvider";
+import { useToast } from "@/components/ToastProvider";
 import JobCard from "@/components/JobCard";
 import BottomNav from "@/components/BottomNav";
 import ConfirmModal from "@/components/ConfirmModal";
+import { SkeletonList } from "@/components/Skeleton";
+import type { TranslationKey } from "@/lib/i18n";
 
 type SortOption = "newest" | "oldest" | "value_desc" | "value_asc";
 
-const typeFilters: { value: JobType | "all"; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "cans", label: "🥫 Cans" },
-  { value: "plastic", label: "🧴 Plastic" },
-  { value: "glass", label: "🍾 Glass" },
+const typeFilters: { value: JobType | "all"; labelKey: TranslationKey }[] = [
+  { value: "all", labelKey: "jobs.all" },
+  { value: "cans", labelKey: "create.cans" },
+  { value: "plastic", labelKey: "create.plastic" },
+  { value: "glass", labelKey: "create.glass" },
 ];
 
-const statusFilters: { value: JobStatus | "all"; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "done", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+const typeEmojis: Record<string, string> = { cans: "🥫", plastic: "🧴", glass: "🍾" };
+
+const statusFilters: { value: JobStatus | "all"; labelKey: TranslationKey }[] = [
+  { value: "all", labelKey: "jobs.all" },
+  { value: "pending", labelKey: "jobs.pending" },
+  { value: "in_progress", labelKey: "jobs.inProgress" },
+  { value: "done", labelKey: "jobs.completed" },
+  { value: "cancelled", labelKey: "jobs.cancelled" },
 ];
 
-const sortOptions: { value: SortOption; label: string }[] = [
-  { value: "newest", label: "Newest first" },
-  { value: "oldest", label: "Oldest first" },
-  { value: "value_desc", label: "Highest value" },
-  { value: "value_asc", label: "Lowest value" },
+const sortKeys: { value: SortOption; labelKey: TranslationKey }[] = [
+  { value: "newest", labelKey: "jobs.newest" },
+  { value: "oldest", labelKey: "jobs.oldest" },
+  { value: "value_desc", labelKey: "jobs.highestValue" },
+  { value: "value_asc", labelKey: "jobs.lowestValue" },
 ];
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [role, setRoleState] = useState<UserRole | null>(null);
+  const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<JobType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const [sort, setSort] = useState<SortOption>("newest");
+  const [search, setSearch] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const { t } = useLocale();
+  const { toast } = useToast();
 
   useEffect(() => {
     setRoleState(getRole());
     setJobs(getJobs());
+    setLoading(false);
   }, []);
 
   const isDriver = role === "driver";
@@ -51,8 +62,17 @@ export default function JobsPage() {
       ? jobs.filter((j) => j.status === "pending" || j.assignedTo === "driver-1")
       : jobs;
 
-    if (typeFilter !== "all") list = list.filter((j) => j.type === typeFilter);
+    if (typeFilter !== "all") {
+      list = list.filter((j) => {
+        const jobTypes = Array.isArray(j.type) ? j.type : [j.type];
+        return jobTypes.includes(typeFilter);
+      });
+    }
     if (statusFilter !== "all") list = list.filter((j) => j.status === statusFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((j) => j.address.toLowerCase().includes(q));
+    }
 
     list = [...list].sort((a, b) => {
       switch (sort) {
@@ -64,7 +84,7 @@ export default function JobsPage() {
     });
 
     return list;
-  }, [jobs, isDriver, typeFilter, statusFilter, sort]);
+  }, [jobs, isDriver, typeFilter, statusFilter, sort, search]);
 
   const handleAccept = (id: string) => {
     setConfirmId(id);
@@ -75,14 +95,24 @@ export default function JobsPage() {
     updateJob(confirmId, { status: "in_progress", assignedTo: "driver-1" });
     setJobs(getJobs());
     setConfirmId(null);
+    toast(t("jobs.accept") + " ✓");
   };
 
   return (
     <div className="min-h-dvh pb-20">
-      <div className="max-w-md mx-auto px-4 pt-6">
+      <div className="px-4 pt-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          {isDriver ? "Available Jobs" : "My Requests"}
+          {isDriver ? t("jobs.available") : t("jobs.myRequests")}
         </h1>
+
+        {/* Search */}
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("jobs.search")}
+          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all mb-3"
+        />
 
         {/* Type filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide">
@@ -96,7 +126,7 @@ export default function JobsPage() {
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 active:bg-gray-200 dark:active:bg-gray-700"
               }`}
             >
-              {f.label}
+              {f.value !== "all" ? typeEmojis[f.value] + " " : ""}{t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -113,7 +143,7 @@ export default function JobsPage() {
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 active:bg-gray-200 dark:active:bg-gray-700"
               }`}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -124,26 +154,26 @@ export default function JobsPage() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOption)}
-            className="text-xs text-gray-500 bg-transparent border-0 focus:ring-0 pr-6 cursor-pointer"
+            className="text-xs text-gray-500 dark:text-gray-400 bg-transparent border-0 focus:ring-0 pr-6 cursor-pointer"
           >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+            {sortKeys.map((o) => (
+              <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
             ))}
           </select>
         </div>
 
-        {result.length === 0 ? (
+        {loading ? (
+          <SkeletonList count={3} />
+        ) : result.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">
-              {typeFilter === "all" ? "📭" : typeFilters.find((f) => f.value === typeFilter)?.label.split(" ")[0]}
-            </div>
-            <p className="text-gray-400 text-lg">No jobs found</p>
+            <div className="text-4xl mb-3">📭</div>
+            <p className="text-gray-400 text-lg">{t("jobs.noJobs")}</p>
             <p className="text-gray-400 text-sm mt-1">
-              {typeFilter !== "all" || statusFilter !== "all"
-                ? "Try changing your filters"
+              {typeFilter !== "all" || statusFilter !== "all" || search
+                ? t("jobs.changeFilters")
                 : !isDriver
-                  ? "Create your first request"
-                  : "Check back soon"}
+                  ? t("jobs.createFirst")
+                  : t("jobs.checkBack")}
             </p>
           </div>
         ) : (
@@ -162,10 +192,10 @@ export default function JobsPage() {
 
       <ConfirmModal
         open={confirmId !== null}
-        title="Accept this job?"
-        message="You will be assigned to this collection. Make sure you can reach the pickup location."
-        confirmLabel="Accept"
-        cancelLabel="Cancel"
+        title={t("confirm.accept")}
+        message={t("confirm.acceptMsg")}
+        confirmLabel={t("confirm.acceptBtn")}
+        cancelLabel={t("confirm.cancel")}
         onConfirm={confirmAccept}
         onCancel={() => setConfirmId(null)}
       />
