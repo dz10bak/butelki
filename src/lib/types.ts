@@ -1,5 +1,5 @@
 export type JobType = "cans" | "plastic" | "glass";
-export type JobStatus = "pending" | "in_progress" | "done";
+export type JobStatus = "pending" | "in_progress" | "done" | "cancelled";
 export type UserRole = "client" | "driver";
 
 export interface Job {

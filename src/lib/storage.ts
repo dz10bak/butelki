@@ -24,6 +24,11 @@ export function updateJob(id: string, updates: Partial<Job>): void {
   }
 }
 
+export function deleteJob(id: string): void {
+  const jobs = getJobs().filter((j) => j.id !== id);
+  localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
+}
+
 export function getJob(id: string): Job | undefined {
   return getJobs().find((j) => j.id === id);
 }
