@@ -36,6 +36,7 @@ const translations = {
     "create.errorLocation": "Please select a location on the map",
     "create.errorAmount": "Minimum 50 items required",
     "create.errorType": "Select at least one type",
+    "create.errorOutsidePoland": "Service is only available in Poland",
     "create.success": "Request created!",
 
     // Jobs
@@ -177,6 +178,7 @@ const translations = {
     "create.errorLocation": "Wybierz lokalizację na mapie",
     "create.errorAmount": "Minimum 50 sztuk",
     "create.errorType": "Wybierz przynajmniej jeden typ",
+    "create.errorOutsidePoland": "Usługa dostępna tylko w Polsce",
     "create.success": "Zlecenie utworzone!",
 
     // Jobs

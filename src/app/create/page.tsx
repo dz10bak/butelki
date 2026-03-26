@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { addJob } from "@/lib/storage";
 import type { JobType } from "@/lib/types";
@@ -21,12 +21,15 @@ export default function CreatePage() {
   const { t } = useLocale();
   const { toast } = useToast();
   const [address, setAddress] = useState("");
+  const [geoAddress, setGeoAddress] = useState("");
   const [lat, setLat] = useState(52.2297);
   const [lng, setLng] = useState(21.0122);
   const [amount, setAmount] = useState("");
   const [types, setTypes] = useState<JobType[]>(["cans"]);
   const [depositOnly, setDepositOnly] = useState(false);
   const [error, setError] = useState("");
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -42,7 +45,44 @@ export default function CreatePage() {
     setLat(newLat);
     setLng(newLng);
     setAddress(newAddress);
+    setGeoAddress(newAddress);
   }, []);
+
+  const geocodeAddress = useCallback((query: string) => {
+    if (query.trim().length < 3) return;
+    setSearching(true);
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=pl&limit=1`,
+      { headers: { "Accept-Language": "en" } }
+    )
+      .then((r) => r.json())
+      .then((results) => {
+        if (results.length > 0) {
+          const { lat: rLat, lon: rLng, display_name } = results[0];
+          const newLat = parseFloat(rLat);
+          const newLng = parseFloat(rLng);
+          setLat(newLat);
+          setLng(newLng);
+          setGeoAddress(display_name);
+          setError("");
+        } else {
+          setGeoAddress("");
+          setError(t("create.errorOutsidePoland"));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSearching(false));
+  }, [t]);
+
+  const handleAddressInput = useCallback((value: string) => {
+    setAddress(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (value.trim().length >= 3) {
+        geocodeAddress(value);
+      }
+    }, 1000);
+  }, [geocodeAddress]);
 
   const toggleType = (type: JobType) => {
     setTypes((prev) =>
@@ -55,6 +95,13 @@ export default function CreatePage() {
     if (!address) {
       setError(t("create.errorLocation"));
       return;
+    }
+    if (geoAddress) {
+      const geoLower = geoAddress.toLowerCase();
+      if (!geoLower.includes("polska") && !geoLower.includes("poland")) {
+        setError(t("create.errorOutsidePoland"));
+        return;
+      }
     }
     if (!num || num < 50) {
       setError(t("create.errorAmount"));
@@ -97,12 +144,19 @@ export default function CreatePage() {
             )}
           </div>
 
-          <FormInput
-            label={t("create.address")}
-            value={address}
-            onChange={setAddress}
-            placeholder={t("create.addressPlaceholder")}
-          />
+          <div className="relative">
+            <FormInput
+              label={t("create.address")}
+              value={address}
+              onChange={handleAddressInput}
+              placeholder={t("create.addressPlaceholder")}
+            />
+            {searching && (
+              <div className="absolute right-3 top-9">
+                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
 
           <FormInput
             label={t("create.amount")}
